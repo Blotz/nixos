@@ -18,6 +18,7 @@
   # Bootloader.
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
+  boot.kernelParams = [ "psmouse.synaptics_intertouch=0" ];
 
   networking.hostName = "nixos"; # Define your hostname.
   # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
@@ -48,8 +49,19 @@
   };
 
   # Enable the X11 windowing system.
-  services.xserver.enable = true;
+  services.xserver = {
+    enable = true;
 
+    libinput = {
+      enable = true;
+
+      # disabling touchpad acceleration
+      touchpad = {
+        # accelProfile = "flat";
+        disableWhileTyping = true;
+      };
+    };
+  };
   # Enable the GNOME Desktop Environment.
   services.xserver.displayManager.gdm.enable = true;
   services.xserver.desktopManager.gnome.enable = true;
@@ -65,7 +77,10 @@
 
   # Enable CUPS to print documents.
   services.printing.enable = true;
-
+  services.avahi.enable = true; # runs the Avahi daemon
+  services.avahi.nssmdns = true; # enables the mDNS NSS plug-in
+  services.avahi.openFirewall = true; # opens the firewall for UDP port 5353
+  
   # Enable sound with pipewire.
   sound.enable = true;
   hardware.pulseaudio.enable = false;
@@ -86,6 +101,27 @@
   ## enable fwupd
   services.fwupd.enable = true;
 
+  # Laptop stuff
+  powerManagement.enable = true;
+  # thermals
+  services.thermald.enable = true;
+  # tlp
+  services.tlp = {
+    enable = false;
+    settings = {
+      CPU_SCALING_GOVERNOR_ON_AC = "performance";
+      CPU_SCALING_GOVERNOR_ON_BAT = "powersave";
+
+      CPU_ENERGY_PERF_POLICY_ON_BAT = "power";
+      CPU_ENERGY_PERF_POLICY_ON_AC = "performance";
+
+      CPU_MIN_PERF_ON_AC = 0;
+      CPU_MAX_PERF_ON_AC = 100;
+      CPU_MIN_PERF_ON_BAT = 0;
+      CPU_MAX_PERF_ON_BAT = 20;
+    };
+  };
+
   # Enable touchpad support (enabled default in most desktopManager).
   # services.xserver.libinput.enable = true;
 
@@ -96,6 +132,7 @@
     extraGroups = [ "networkmanager" "wheel" ];
     packages = with pkgs; [
       firefox
+      chromium
     #  thunderbird
     ];
   };
@@ -114,13 +151,19 @@
   # List packages installed in system profile. To search, run:
   # $ nix search wget
   environment.systemPackages = with pkgs; [
+    # vibes
+    spotify
+    obsidian
+    firefox
+    vscode
+    # tools
     vim 
     wget
     unzip
     git
     nix-prefetch-git
     xclip
-    obsidian
+    ffmpeg
     # neovim
     neovim
     fd
@@ -136,6 +179,7 @@
     lua
     luajit
     luarocks
+    stylua
     # latex
     texlive.combined.scheme-full
     biber
@@ -172,6 +216,11 @@
       };
     };
   };
+
+  # Spotify stuff
+  networking.firewall.allowedTCPPorts = [ 57621 ];  # sync mobile
+  networking.firewall.allowedUDPPorts = [ 5353 ];  # sync spotify connect
+
 
   # Some programs need SUID wrappers, can be configured further or are
   # started in user sessions.
